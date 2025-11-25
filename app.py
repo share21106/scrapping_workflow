@@ -36,7 +36,7 @@ def get_chrome_driver():
     driver = webdriver.Chrome(options=chrome_options)
     return driver
 
-def scrape_flippa(url='https://flippa.com/search', max_listings=5, filters=None):
+def scrape_flippa(url='https://flippa.com/search?search_template=most_relevant&filter%5Bsale_method%5D=auction,classified&filter%5Bstatus%5D=open&filter%5Bproperty_type%5D=website,fba,saas,ecommerce_store,plugin_and_extension,ai_apps_and_tools,youtube,ios_app,android_app,game,crypto_app,social_media,newsletter,service_and_agency,service,projects_and_concepts,other&filter%5Brevenue_generating%5D=T,F', max_listings=5, filters=None):
     """
     Main scraping function for Flippa
     
@@ -118,34 +118,63 @@ def scrape_flippa(url='https://flippa.com/search', max_listings=5, filters=None)
                     listing['listing_id'] = f'item_{idx}'
                 
                 # Extract key_data fields (Type, Industry, Monetization, Site Age, Net Profit)
+                # Look for divs with label (tw-text-gray-600) and value (tw-font-semibold) pattern
                 key_data_items = {}
-                for div in container.find_all('div'):
-                    # Check if this is a key_data item by looking for the structure
-                    # Find divs with class containing 'tw-text-gray-600' (label) and 'tw-font-semibold' (value)
-                    label_div = None
-                    value_div = None
-                    
-                    for child in div.find_all('div'):
-                        classes = child.get('class', [])
-                        class_str = ' '.join(classes).lower() if classes else ''
-                        text = child.get_text(strip=True)
+                
+                # Find all divs in container
+                all_divs = container.find_all('div', recursive=True)
+                
+                # Collect label and value divs
+                label_divs = []
+                value_divs = []
+                
+                for div in all_divs:
+                    div_classes = div.get('class', [])
+                    if div_classes:
+                        div_class_str = ' '.join(div_classes).lower()
+                        if 'tw-text-gray-600' in div_class_str:
+                            label_divs.append(div)
+                        elif 'tw-font-semibold' in div_class_str:
+                            value_divs.append(div)
+                
+                # Match labels with values
+                for label_div in label_divs:
+                    label_text = label_div.get_text(strip=True)
+                    if label_text in ['Type', 'Industry', 'Monetization', 'Site Age', 'Net Profit']:
+                        # Find corresponding value - check next sibling first
+                        value_text = 'N/A'
+                        next_sib = label_div.find_next_sibling('div')
+                        if next_sib:
+                            next_classes = next_sib.get('class', [])
+                            if next_classes and 'tw-font-semibold' in ' '.join(next_classes).lower():
+                                value_text = next_sib.get_text(strip=True)
                         
-                        if 'tw-text-gray-600' in class_str and text:
-                            label_div = child
-                        elif 'tw-font-semibold' in class_str and text:
-                            value_div = child
-                    
-                    if label_div and value_div:
-                        label = label_div.get_text(strip=True)
-                        value = value_div.get_text(strip=True)
-                        if label in ['Type', 'Industry', 'Monetization', 'Site Age', 'Net Profit']:
-                            key_data_items[label.lower().replace(' ', '_')] = value
+                        # If not found, check parent's value divs
+                        if value_text == 'N/A' and label_div.parent:
+                            parent = label_div.parent
+                            for val_div in value_divs:
+                                if val_div in parent.find_all('div') and val_div != label_div:
+                                    value_text = val_div.get_text(strip=True)
+                                    break
+                        
+                        # If still not found, use any nearby value div
+                        if value_text == 'N/A' and value_divs:
+                            value_text = value_divs[0].get_text(strip=True)
+                        
+                        if value_text != 'N/A':
+                            key_data_items[label_text.lower().replace(' ', '_')] = value_text
                 
                 listing['type'] = key_data_items.get('type', 'N/A')
                 listing['industry'] = key_data_items.get('industry', 'N/A')
                 listing['monetization'] = key_data_items.get('monetization', 'N/A')
                 listing['site_age'] = key_data_items.get('site_age', 'N/A')
                 listing['net_profit'] = key_data_items.get('net_profit', 'N/A')
+                
+                # Set default values for other fields
+                listing['revenue'] = 'N/A'
+                listing['profit'] = 'N/A'
+                listing['category'] = 'N/A'
+                listing['description'] = 'N/A'
                 
                 # Extract country - look for div with ng-if="listing.country_name" or div with svg and span
                 listing['country'] = 'N/A'
@@ -188,10 +217,10 @@ def scrape_flippa(url='https://flippa.com/search', max_listings=5, filters=None)
                 img = container.find('img', src=True)
                 listing['image_url'] = img['src'] if img else 'N/A'
                 
-                # Only add if has meaningful data
-                if listing['title'] != 'N/A' or listing['url'] != 'N/A':
-                    listings.append(listing)
-                    print(f"✓ Scraped: {listing['title'][:50]}")
+                # Add all listings regardless of data completeness
+                listings.append(listing)
+                title_display = listing['title'][:50] if listing['title'] != 'N/A' else f"Listing {idx + 1}"
+                print(f"✓ Scraped: {title_display}")
                 
             except Exception as e:
                 print(f"Error parsing listing {idx}: {e}")
@@ -246,7 +275,7 @@ def scrape():
     
     Expected JSON body:
     {
-        "url": "https://flippa.com/search",
+        "url": "https://flippa.com/search?search_template=most_relevant&filter%5Bsale_method%5D=auction,classified&filter%5Bstatus%5D=open&filter%5Bproperty_type%5D=website,fba,saas,ecommerce_store,plugin_and_extension,ai_apps_and_tools,youtube,ios_app,android_app,game,crypto_app,social_media,newsletter,service_and_agency,service,projects_and_concepts,other&filter%5Brevenue_generating%5D=T,F",
         "max_listings": 20,
         "filters": {
             "min_price": 1000,
@@ -258,7 +287,7 @@ def scrape():
     try:
         data = request.get_json() or {}
         
-        url = data.get('url', 'https://flippa.com/search')
+        url = data.get('url', 'https://flippa.com/search?search_template=most_relevant&filter%5Bsale_method%5D=auction,classified&filter%5Bstatus%5D=open&filter%5Bproperty_type%5D=website,fba,saas,ecommerce_store,plugin_and_extension,ai_apps_and_tools,youtube,ios_app,android_app,game,crypto_app,social_media,newsletter,service_and_agency,service,projects_and_concepts,other&filter%5Brevenue_generating%5D=T,F')
         max_listings = data.get('max_listings', 5)
         filters = data.get('filters', {})
         
