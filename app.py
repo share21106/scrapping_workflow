@@ -36,7 +36,7 @@ def get_chrome_driver():
     driver = webdriver.Chrome(options=chrome_options)
     return driver
 
-def scrape_flippa(url='https://flippa.com/search', max_listings=20, filters=None):
+def scrape_flippa(url='https://flippa.com/search', max_listings=5, filters=None):
     """
     Main scraping function for Flippa
     
@@ -259,7 +259,7 @@ def scrape():
         data = request.get_json() or {}
         
         url = data.get('url', 'https://flippa.com/search')
-        max_listings = data.get('max_listings', 20)
+        max_listings = data.get('max_listings', 5)
         filters = data.get('filters', {})
         
         # Validate max_listings
