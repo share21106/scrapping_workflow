@@ -42,7 +42,7 @@ def scrape():
     items = []
 
     # Only scrape first 5 items
-    for card in listings[:5]:
+    for card in listings[:3]:
 
         # TITLE
         try:
@@ -65,7 +65,6 @@ def scrape():
             "industry": industry
         })
 
-    driver.quit()
     return items
 
 @app.route('/', methods=['GET'])
