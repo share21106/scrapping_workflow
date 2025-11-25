@@ -102,13 +102,8 @@ def scrape_flippa(url='https://flippa.com/search', max_listings=20, filters=None
                     'scraped_at': datetime.now().isoformat()
                 }
                 
-                # Extract title
-                title_elem = (
-                    container.find('h2') or 
-                    container.find('h3') or 
-                    container.find('h4') or
-                    container.find('a', class_=lambda x: x and 'title' in str(x).lower())
-                )
+                # Extract title from h6 tag
+                title_elem = container.find('h6')
                 listing['title'] = title_elem.get_text(strip=True) if title_elem else 'N/A'
                 
                 # Extract URL
@@ -122,26 +117,72 @@ def scrape_flippa(url='https://flippa.com/search', max_listings=20, filters=None
                     listing['url'] = 'N/A'
                     listing['listing_id'] = f'item_{idx}'
                 
-                # Extract price - look for $ symbols
-                price_text = container.get_text()
-                price_matches = [t for t in price_text.split() if '$' in t]
-                listing['price'] = price_matches[0] if price_matches else 'N/A'
+                # Extract key_data fields (Type, Industry, Monetization, Site Age, Net Profit)
+                key_data_items = {}
+                for div in container.find_all('div'):
+                    # Check if this is a key_data item by looking for the structure
+                    # Find divs with class containing 'tw-text-gray-600' (label) and 'tw-font-semibold' (value)
+                    label_div = None
+                    value_div = None
+                    
+                    for child in div.find_all('div'):
+                        classes = child.get('class', [])
+                        class_str = ' '.join(classes).lower() if classes else ''
+                        text = child.get_text(strip=True)
+                        
+                        if 'tw-text-gray-600' in class_str and text:
+                            label_div = child
+                        elif 'tw-font-semibold' in class_str and text:
+                            value_div = child
+                    
+                    if label_div and value_div:
+                        label = label_div.get_text(strip=True)
+                        value = value_div.get_text(strip=True)
+                        if label in ['Type', 'Industry', 'Monetization', 'Site Age', 'Net Profit']:
+                            key_data_items[label.lower().replace(' ', '_')] = value
                 
-                # Extract revenue
-                revenue_elem = container.find(string=lambda x: x and 'revenue' in str(x).lower())
-                listing['revenue'] = revenue_elem.strip() if revenue_elem else 'N/A'
+                listing['type'] = key_data_items.get('type', 'N/A')
+                listing['industry'] = key_data_items.get('industry', 'N/A')
+                listing['monetization'] = key_data_items.get('monetization', 'N/A')
+                listing['site_age'] = key_data_items.get('site_age', 'N/A')
+                listing['net_profit'] = key_data_items.get('net_profit', 'N/A')
                 
-                # Extract profit
-                profit_elem = container.find(string=lambda x: x and 'profit' in str(x).lower())
-                listing['profit'] = profit_elem.strip() if profit_elem else 'N/A'
+                # Extract country - look for div with ng-if="listing.country_name" or div with svg and span
+                listing['country'] = 'N/A'
+                for div in container.find_all('div'):
+                    ng_if = div.get('ng-if', '')
+                    if 'country_name' in ng_if:
+                        # Find span with ng-binding class inside this div
+                        for span in div.find_all('span'):
+                            classes = span.get('class', [])
+                            if 'ng-binding' in ' '.join(classes).lower():
+                                country_text = span.get_text(strip=True)
+                                if country_text and len(country_text) < 50 and not country_text.replace(' ', '').isdigit():
+                                    listing['country'] = country_text
+                                    break
+                        if listing['country'] != 'N/A':
+                            break
+                    # Also check for div with svg (map pin icon) and span
+                    elif div.find('svg') and div.find('span'):
+                        for span in div.find_all('span'):
+                            classes = span.get('class', [])
+                            if 'ng-binding' in ' '.join(classes).lower():
+                                country_text = span.get_text(strip=True)
+                                if country_text and len(country_text) < 50 and not country_text.replace(' ', '').isdigit():
+                                    listing['country'] = country_text
+                                    break
+                        if listing['country'] != 'N/A':
+                            break
                 
-                # Extract category/type
-                category_elem = container.find(class_=lambda x: x and ('badge' in str(x).lower() or 'category' in str(x).lower()))
-                listing['category'] = category_elem.get_text(strip=True) if category_elem else 'N/A'
-                
-                # Extract description snippet
-                desc_elem = container.find('p')
-                listing['description'] = desc_elem.get_text(strip=True)[:200] if desc_elem else 'N/A'
+                # Extract price - look for USD $ pattern
+                price_elem = container.find('h5')
+                if price_elem:
+                    listing['price'] = price_elem.get_text(strip=True)
+                else:
+                    # Fallback: look for $ symbols
+                    price_text = container.get_text()
+                    price_matches = [t for t in price_text.split() if '$' in t]
+                    listing['price'] = price_matches[0] if price_matches else 'N/A'
                 
                 # Extract image
                 img = container.find('img', src=True)
