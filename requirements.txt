@@ -2,5 +2,5 @@ Flask==3.0.0
 flask-cors==4.0.0
 selenium==4.15.2
 beautifulsoup4==4.12.2
-lxml==4.9.3
+html5lib==1.1
 gunicorn==21.2.0

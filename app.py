@@ -9,8 +9,6 @@ from flask_cors import CORS
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
 import time
 import os
@@ -85,11 +83,15 @@ def scrape_flippa(url='https://flippa.com/search', max_listings=20, filters=None
         listings = []
         
         # Strategy 1: Find by common patterns
-        listing_containers = (
-            soup.find_all('div', class_=lambda x: x and 'listing' in str(x).lower()) or
-            soup.find_all('article') or
-            soup.find_all('div', class_=lambda x: x and 'card' in str(x).lower())
-        )
+        listing_containers = []
+        # Find divs with listing or card in class name
+        for div in soup.find_all('div'):
+            classes = div.get('class', [])
+            class_str = ' '.join(classes).lower() if classes else ''
+            if 'listing' in class_str or 'card' in class_str:
+                listing_containers.append(div)
+        # Also include all articles
+        listing_containers.extend(soup.find_all('article'))
         
         print(f"Found {len(listing_containers)} potential listings")
         
