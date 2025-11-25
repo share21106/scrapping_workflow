@@ -24,11 +24,11 @@
           "string": [
             {
               "name": "api_url",
-              "value": "https://YOUR-API-URL.railway.app/scrape"
+              "value": "https://scrapping-workflow.onrender.com/scrape"
             },
             {
               "name": "max_listings",
-              "value": "20"
+              "value": "5"
             },
             {
               "name": "min_price",
@@ -56,9 +56,7 @@
       "parameters": {
         "method": "POST",
         "url": "={{ $json.api_url }}",
-        "authentication": "none",
         "sendBody": true,
-        "contentType": "json",
         "bodyParameters": {
           "parameters": [
             {
@@ -76,7 +74,7 @@
           ]
         },
         "options": {
-          "timeout": 60000
+          "timeout": 300000
         }
       },
       "id": "call-scraper-api",
@@ -120,32 +118,215 @@
     },
     {
       "parameters": {
-        "operation": "appendOrUpdate",
+        "operation": "append",
         "documentId": {
           "__rl": true,
-          "mode": "list",
-          "value": "YOUR_SHEET_ID"
+          "value": "https://docs.google.com/spreadsheets/d/1KZxe6U35a-11CfCobJMjTG3VSitI7Gh3VZNQwN-OKNQ/edit?gid=0#gid=0",
+          "mode": "url"
         },
         "sheetName": {
           "__rl": true,
-          "mode": "list",
-          "value": "Sheet1"
+          "value": "Sheet1",
+          "mode": "name"
         },
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "id": "={{ $json.id }}",
-            "listing_id": "={{ $json.listing_id }}",
             "title": "={{ $json.title }}",
             "url": "={{ $json.url }}",
             "price": "={{ $json.price }}",
+            "type": "={{ $json.type }}",
+            "industry": "={{ $json.industry }}",
+            "monetization": "={{ $json.monetization }}",
+            "site_age": "={{ $json.site_age }}",
+            "net_profit": "={{ $json.net_profit }}",
+            "country": "={{ $json.country }}",
+            "listing_id": "={{ $json.listing_id }}",
             "revenue": "={{ $json.revenue }}",
             "profit": "={{ $json.profit }}",
             "category": "={{ $json.category }}",
             "description": "={{ $json.description }}",
             "image_url": "={{ $json.image_url }}",
-            "scraped_at": "={{ $json.scraped_at }}"
-          }
+            "scraped_at": "={{ $json.scraped_at }}",
+            "id": "={{ $json.id }}"
+          },
+          "matchingColumns": [
+            "listing_id"
+          ],
+          "schema": [
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "url",
+              "displayName": "url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "price",
+              "displayName": "price",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "type",
+              "displayName": "type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "industry",
+              "displayName": "industry",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "monetization",
+              "displayName": "monetization",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "site_age",
+              "displayName": "site_age",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "net_profit",
+              "displayName": "net_profit",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "country",
+              "displayName": "country",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "listing_id",
+              "displayName": "listing_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "revenue",
+              "displayName": "revenue",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "profit",
+              "displayName": "profit",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "category",
+              "displayName": "category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "image_url",
+              "displayName": "image_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "scraped_at",
+              "displayName": "scraped_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
         },
         "options": {}
       },
@@ -158,8 +339,8 @@
     {
       "parameters": {
         "operation": "sendMessage",
-        "chatId": "YOUR_TELEGRAM_CHAT_ID",
-        "text": "=🎉 Flippa Scraper Complete!\n\n📊 Total Listings: {{ $('Process Listings').all().length }}\n✅ Valid Listings: {{ $runIndex + 1 }}\n🔗 Latest: {{ $json.title }}\n💰 Price: {{ $json.price }}\n📅 {{ $now.format('YYYY-MM-DD HH:mm') }}",
+        "chatId": "8253068809",
+        "text": "=🎉 Flippa Scraper Complete!\n📊 Total Listings: {{ $('Process Listings').all().length }}\n✅ Valid Listings: {{ $runIndex + 1 }}\n🔗 Latest: {{ $json.title }}\n💰 Price: {{ $json.price }}\n🏢 Type: {{ $json.type }}\n🌍 Country: {{ $json.country }}\n💵 Net Profit: {{ $json.net_profit }}\n📅 {{ $now.format('YYYY-MM-DD HH:mm') }}",
         "additionalFields": {}
       },
       "id": "notify-telegram",
@@ -174,7 +355,7 @@
         "toEmail": "recipient@example.com",
         "subject": "Flippa Scraping Report - {{ $now.format('YYYY-MM-DD') }}",
         "emailType": "html",
-        "message": "=<h2>Flippa Scraping Complete</h2>\n<p><strong>Total Listings Found:</strong> {{ $('Process Listings').all().length }}</p>\n<p><strong>Time:</strong> {{ $now.format('YYYY-MM-DD HH:mm:ss') }}</p>\n<h3>Latest Listings:</h3>\n<ul>\n{{ $('Filter Valid Listings').all().slice(0, 5).map(item => `<li><strong>${item.json.title}</strong> - ${item.json.price} <a href=\"${item.json.url}\">View</a></li>`).join('\\n') }}\n</ul>",
+        "message": "=<h2>Flippa Scraping Complete</h2>\n<p><strong>Total Listings Found:</strong> {{ $('Process Listings').all().length }}</p>\n<p><strong>Time:</strong> {{ $now.format('YYYY-MM-DD HH:mm:ss') }}</p>\n<h3>Latest Listings:</h3>\n<ul>\n{{ $('Filter Valid Listings').all().slice(0, 5).map(item => `<li><strong>${item.json.title}</strong><br/>💰 Price: ${item.json.price} | 🏢 Type: ${item.json.type} | 🌍 Country: ${item.json.country}<br/>💵 Net Profit: ${item.json.net_profit}<br/><a href=\"${item.json.url}\">View Listing</a></li>`).join('\\n') }}\n</ul>",
         "options": {}
       },
       "id": "email-report",
@@ -247,13 +428,7 @@
     },
     "Save to Google Sheets": {
       "main": [
-        [
-          {
-            "node": "Email Report",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        []
       ]
     }
   },
