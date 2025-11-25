@@ -1,0 +1,263 @@
+{
+  "name": "Flippa Scraper - Complete Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Every 6 Hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [240, 300],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "api_url",
+              "value": "https://YOUR-API-URL.railway.app/scrape"
+            },
+            {
+              "name": "max_listings",
+              "value": "20"
+            },
+            {
+              "name": "min_price",
+              "value": "1000"
+            },
+            {
+              "name": "max_price",
+              "value": "50000"
+            },
+            {
+              "name": "category",
+              "value": "ecommerce"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-parameters",
+      "name": "Set Parameters",
+      "type": "n8n-nodes-base.set",
+      "position": [440, 300],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.api_url }}",
+        "authentication": "none",
+        "sendBody": true,
+        "contentType": "json",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "url",
+              "value": "https://flippa.com/search"
+            },
+            {
+              "name": "max_listings",
+              "value": "={{ parseInt($json.max_listings) }}"
+            },
+            {
+              "name": "filters",
+              "value": "={{ { min_price: parseInt($json.min_price), max_price: parseInt($json.max_price), category: $json.category } }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "call-scraper-api",
+      "name": "Call Scraper API",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [640, 300],
+      "typeVersion": 4.1
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract listings from API response\nconst response = $input.first().json;\n\nif (!response.success) {\n  throw new Error(`Scraping failed: ${response.error}`);\n}\n\nconst listings = response.listings || [];\n\n// Return each listing as separate item for n8n\nreturn listings.map((listing, index) => ({\n  json: {\n    ...listing,\n    position: index + 1,\n    total_scraped: listings.length\n  }\n}));"
+      },
+      "id": "process-listings",
+      "name": "Process Listings",
+      "type": "n8n-nodes-base.code",
+      "position": [840, 300],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.title }}",
+              "operation": "notEqual",
+              "value2": "N/A"
+            },
+            {
+              "value1": "={{ $json.url }}",
+              "operation": "notEqual",
+              "value2": "N/A"
+            }
+          ]
+        }
+      },
+      "id": "filter-valid-listings",
+      "name": "Filter Valid Listings",
+      "type": "n8n-nodes-base.filter",
+      "position": [1040, 300],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "YOUR_SHEET_ID"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "Sheet1"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $json.id }}",
+            "listing_id": "={{ $json.listing_id }}",
+            "title": "={{ $json.title }}",
+            "url": "={{ $json.url }}",
+            "price": "={{ $json.price }}",
+            "revenue": "={{ $json.revenue }}",
+            "profit": "={{ $json.profit }}",
+            "category": "={{ $json.category }}",
+            "description": "={{ $json.description }}",
+            "image_url": "={{ $json.image_url }}",
+            "scraped_at": "={{ $json.scraped_at }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "save-to-sheets",
+      "name": "Save to Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [1240, 300],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "operation": "sendMessage",
+        "chatId": "YOUR_TELEGRAM_CHAT_ID",
+        "text": "=🎉 Flippa Scraper Complete!\n\n📊 Total Listings: {{ $('Process Listings').all().length }}\n✅ Valid Listings: {{ $runIndex + 1 }}\n🔗 Latest: {{ $json.title }}\n💰 Price: {{ $json.price }}\n📅 {{ $now.format('YYYY-MM-DD HH:mm') }}",
+        "additionalFields": {}
+      },
+      "id": "notify-telegram",
+      "name": "Notify via Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "position": [1240, 500],
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {
+        "fromEmail": "your-email@gmail.com",
+        "toEmail": "recipient@example.com",
+        "subject": "Flippa Scraping Report - {{ $now.format('YYYY-MM-DD') }}",
+        "emailType": "html",
+        "message": "=<h2>Flippa Scraping Complete</h2>\n<p><strong>Total Listings Found:</strong> {{ $('Process Listings').all().length }}</p>\n<p><strong>Time:</strong> {{ $now.format('YYYY-MM-DD HH:mm:ss') }}</p>\n<h3>Latest Listings:</h3>\n<ul>\n{{ $('Filter Valid Listings').all().slice(0, 5).map(item => `<li><strong>${item.json.title}</strong> - ${item.json.price} <a href=\"${item.json.url}\">View</a></li>`).join('\\n') }}\n</ul>",
+        "options": {}
+      },
+      "id": "email-report",
+      "name": "Email Report",
+      "type": "n8n-nodes-base.gmail",
+      "position": [1440, 500],
+      "typeVersion": 2.1
+    }
+  ],
+  "connections": {
+    "Every 6 Hours": {
+      "main": [
+        [
+          {
+            "node": "Set Parameters",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Parameters": {
+      "main": [
+        [
+          {
+            "node": "Call Scraper API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Scraper API": {
+      "main": [
+        [
+          {
+            "node": "Process Listings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Listings": {
+      "main": [
+        [
+          {
+            "node": "Filter Valid Listings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Valid Listings": {
+      "main": [
+        [
+          {
+            "node": "Save to Google Sheets",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Notify via Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Email Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
